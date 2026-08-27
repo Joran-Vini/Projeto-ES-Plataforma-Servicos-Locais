@@ -5,7 +5,7 @@ import type { ServicoFiltro } from '../models/servico-filtro.model';
 import type { StatusServico } from '../models/servico-status.enum';
 
 export interface StatusUpdatePayload {
-  status: StatusServico;
+  status: string;
 }
 
 class ServicoService {
@@ -26,16 +26,19 @@ class ServicoService {
 
   // Lista os serviços contratados sob responsabilidade do prestador autenticado
   async buscarServicosPrestador(): Promise<ServicoDetalhe[]> {
-    const response = await api.get<ServicoDetalhe[]>('/servicos/prestador');
+    const response = await api.get<ServicoDetalhe[]>('/servicos/meus-servicos');
     return response.data;
   }
 
   // Consome PUT /api/servicos/{id}/status
-  async atualizarStatus(id: string | number, status: StatusServico): Promise<ServicoDetalhe> {
-    const payload: StatusUpdatePayload = { status };
-    const response = await api.put<ServicoDetalhe>(`/servicos/${id}/status`, payload);
-    return response.data;
-  }
+ async atualizarStatus(id: string | number, status: StatusServico): Promise<void> {
+  // Garante que o status seja enviado exatamente como String no formato do Enum Java
+  const statusString = String(status).toUpperCase();
+
+  await api.put(`/servicos/${id}/status`, {
+    status: statusString
+  });
+}
 }
 
 export const servicoService = new ServicoService();

@@ -1,64 +1,55 @@
+import type { StatusServico } from '../../../models/servico-status.enum';
 import type { ServicoPrestadorItem } from '../../../models/servico-prestador.model';
-import {
-  type StatusServico,
-  STATUS_SERVICO_LABELS,
-  TRANSOES_PERMITIDAS,
-} from '../../../models/servico-status.enum';
 
-interface Props {
+interface ServicoPrestadorCardProps {
   servico: ServicoPrestadorItem;
   processandoId: number | null;
-  onAtualizarStatus: (id: number, novoStatus: StatusServico) => void;
+  onAtualizarStatus: (id: number, status: StatusServico) => void;
 }
 
 export default function ServicoPrestadorCard({
   servico,
   processandoId,
   onAtualizarStatus,
-}: Props) {
-  const transicoesPossiveis = TRANSOES_PERMITIDAS[servico.status] || [];
-  const estaCarregando = processandoId === servico.id;
+}: ServicoPrestadorCardProps) {
+
+  // Retorna APENAS o próximo status válido (nunca o mesmo status atual)
+  const obterProximoStatus = (statusAtual?: string): StatusServico | null => {
+    switch (statusAtual) {
+      case 'DISPONIVEL':
+        return 'CONTRATADO' as StatusServico; // Requer alteração no Java para liberar
+      case 'CONTRATADO':
+        return 'EM_ANDAMENTO' as StatusServico;
+      case 'EM_ANDAMENTO':
+        return 'REALIZADO' as StatusServico;
+      default:
+        return null;
+    }
+  };
+
+  const proximoStatus = obterProximoStatus(servico?.status);
+  const statusFormatado = (servico?.status ?? '').toLowerCase();
 
   return (
-    <div className="servico-prestador-card">
-      <div className="card-header">
-        <div>
-          <h3>{servico.titulo}</h3>
-          <span className="categoria-badge">{servico.categoria}</span>
-        </div>
-        <span className={`status-tag status-${servico.status.toLowerCase()}`}>
-          {STATUS_SERVICO_LABELS[servico.status] || servico.status}
-        </span>
-      </div>
+    <div className="servico-card">
+      <h3>{servico?.titulo}</h3>
+      <p>{servico?.descricao}</p>
 
-      <div className="card-body">
-        <p><strong>Localização:</strong> {servico.bairro} - {servico.cidade}</p>
-        <p><strong>Forma de Cobrança:</strong> {servico.formaCobranca.replace(/_/g, ' ')}</p>
-        {servico.nomeCliente && (
-          <p><strong>Cliente:</strong> {servico.nomeCliente}</p>
-        )}
-        {servico.telefoneCliente && (
-          <p><strong>Contato do Cliente:</strong> {servico.telefoneCliente}</p>
-        )}
-      </div>
+      <span className={`badge status-${statusFormatado}`}>
+        {servico?.status ?? 'INDISPONIVEL'}
+      </span>
 
-      <div className="card-acoes">
-        {transicoesPossiveis.length > 0 ? (
-          transicoesPossiveis.map((proximoStatus) => (
-            <button
-              key={proximoStatus}
-              type="button"
-              className={`btn-status btn-${proximoStatus.toLowerCase()}`}
-              disabled={estaCarregando}
-              onClick={() => onAtualizarStatus(servico.id, proximoStatus)}
-            >
-              {estaCarregando
-                ? 'Atualizando...'
-                : `Mudar para ${STATUS_SERVICO_LABELS[proximoStatus] || proximoStatus}`}
-            </button>
-          ))
+      <div className="card-actions">
+        {proximoStatus ? (
+          <button
+            type="button"
+            disabled={processandoId === servico?.id}
+            onClick={() => onAtualizarStatus(servico.id, proximoStatus)}
+          >
+            {processandoId === servico?.id ? 'Atualizando...' : `Avançar para ${proximoStatus}`}
+          </button>
         ) : (
-          <span className="text-muted">Nenhuma ação disponível para este status</span>
+          <span className="text-muted">Nenhuma transição disponível</span>
         )}
       </div>
     </div>
